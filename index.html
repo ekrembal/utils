@@ -54,7 +54,7 @@
 <body>
   <div class="wrap">
     <h1>Utility Tabs</h1>
-    <div class="sub">One file. Seven tools. Paste on the left, results on the right. All offline.</div>
+    <div class="sub">One file. Twelve tools. Paste above, results below. All offline.</div>
 
     <div class="tabs" role="tablist" aria-label="Utilities">
       <button class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-le2be" id="tab-le2be">le2be</button>
@@ -66,6 +66,9 @@
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2arr" id="tab-hex2arr">hex→array</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2b64" id="tab-hex2b64">hex→base64</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-b642hex" id="tab-b642hex">base64→hex</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hexsha" id="tab-hexsha">hex→sha</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hexdsha" id="tab-hexdsha">hex→double sha</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-strsha" id="tab-strsha">string→sha</button>
     </div>
 
     <!-- le2be -->
@@ -217,6 +220,57 @@
         </div>
       </div>
     </section>
+
+    <!-- hex→sha -->
+    <section class="panel" id="panel-hexsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hexsha">
+      <div class="pill">Hex → SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hexsha-in">Input (hex)</label>
+          <textarea id="hexsha-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Hashes the raw bytes represented by the hex string. Whitespace and 0x prefixes are ignored.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hexsha-out">Output (SHA-256 hash)</label>
+          <textarea id="hexsha-out" class="mono" readonly></textarea>
+          <div id="hexsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→double sha -->
+    <section class="panel" id="panel-hexdsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hexdsha">
+      <div class="pill">Hex → Double SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hexdsha-in">Input (hex)</label>
+          <textarea id="hexdsha-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Applies SHA-256 twice (Bitcoin-style). Hashes the raw bytes represented by the hex string.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hexdsha-out">Output (double SHA-256 hash)</label>
+          <textarea id="hexdsha-out" class="mono" readonly></textarea>
+          <div id="hexdsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- string→sha -->
+    <section class="panel" id="panel-strsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-strsha">
+      <div class="pill">String → SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="strsha-in">Input (string)</label>
+          <textarea id="strsha-in" placeholder="e.g. Hello World"></textarea>
+          <div class="hint">Hashes the UTF-8 bytes of the input string.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="strsha-out">Output (SHA-256 hash)</label>
+          <textarea id="strsha-out" class="mono" readonly></textarea>
+          <div id="strsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script>
@@ -243,6 +297,17 @@
       return out;
     }
     function bytesToHex(bytes) { return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); }
+
+    // SHA-256 implementation
+    async function sha256(bytes) {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+      return new Uint8Array(hashBuffer);
+    }
+    
+    async function doubleSha256(bytes) {
+      const firstHash = await sha256(bytes);
+      return await sha256(firstHash);
+    }
 
     // Bitcoin CompactSize varint (little-endian for multi-byte)
     function toVarIntHex(n) {
@@ -488,6 +553,103 @@
       }
     }
     b642hexIn.addEventListener('input', handleB64ToHex);
+
+    // ---------- hex→sha256 ----------
+    const hexshaIn = document.getElementById('hexsha-in');
+    const hexshaOut = document.getElementById('hexsha-out');
+    const hexshaStatus = document.getElementById('hexsha-status');
+
+    async function handleHexSha() {
+      const raw = hexshaIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hexshaOut.value = ''; setStatus(hexshaStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const hash = await sha256(bytes);
+        const hashHex = bytesToHex(hash);
+        hexshaOut.value = hashHex;
+        setStatus(hexshaStatus, `${hex.length/2} bytes → SHA-256`, 'ok');
+      } catch (e) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    hexshaIn.addEventListener('input', handleHexSha);
+
+    // ---------- hex→double sha256 ----------
+    const hexdshaIn = document.getElementById('hexdsha-in');
+    const hexdshaOut = document.getElementById('hexdsha-out');
+    const hexdshaStatus = document.getElementById('hexdsha-status');
+
+    async function handleHexDoubleSha() {
+      const raw = hexdshaIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hexdshaOut.value = ''; setStatus(hexdshaStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const hash = await doubleSha256(bytes);
+        const hashHex = bytesToHex(hash);
+        hexdshaOut.value = hashHex;
+        setStatus(hexdshaStatus, `${hex.length/2} bytes → double SHA-256`, 'ok');
+      } catch (e) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    hexdshaIn.addEventListener('input', handleHexDoubleSha);
+
+    // ---------- string→sha256 ----------
+    const strshaIn = document.getElementById('strsha-in');
+    const strshaOut = document.getElementById('strsha-out');
+    const strshaStatus = document.getElementById('strsha-status');
+
+    async function handleStringSha() {
+      const str = strshaIn.value;
+      if (!str) { strshaOut.value = ''; setStatus(strshaStatus, ''); return; }
+      
+      try {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        const hash = await sha256(bytes);
+        const hashHex = bytesToHex(hash);
+        strshaOut.value = hashHex;
+        setStatus(strshaStatus, `${bytes.length} UTF-8 bytes → SHA-256`, 'ok');
+      } catch (e) {
+        strshaOut.value = '';
+        setStatus(strshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    strshaIn.addEventListener('input', handleStringSha);
 
     // Defaults
     cWs.checked = false; // default disabled
