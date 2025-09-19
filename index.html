@@ -64,6 +64,8 @@
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-ws" id="tab-ws">whitespace</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-arr2hex" id="tab-arr2hex">array→hex</button>
       <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2arr" id="tab-hex2arr">hex→array</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2b64" id="tab-hex2b64">hex→base64</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-b642hex" id="tab-b642hex">base64→hex</button>
     </div>
 
     <!-- le2be -->
@@ -178,6 +180,40 @@
           <label class="mono" for="hex2arr-out">Output (comma-separated bytes)</label>
           <textarea id="hex2arr-out" class="mono" readonly></textarea>
           <div id="hex2arr-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→base64 -->
+    <section class="panel" id="panel-hex2b64" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hex2b64">
+      <div class="pill">Hex → Base64</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hex2b64-in">Input (hex)</label>
+          <textarea id="hex2b64-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Whitespace and 0x prefixes are ignored. Hex string must have even length.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hex2b64-out">Output (base64)</label>
+          <textarea id="hex2b64-out" class="mono" readonly></textarea>
+          <div id="hex2b64-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- base64→hex -->
+    <section class="panel" id="panel-b642hex" role="tabpanel" aria-hidden="true" aria-labelledby="tab-b642hex">
+      <div class="pill">Base64 → Hex</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="b642hex-in">Input (base64)</label>
+          <textarea id="b642hex-in" class="mono" placeholder="e.g. SGVsbG8gV29ybGQ="></textarea>
+          <div class="hint">Standard base64 encoding with optional padding.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="b642hex-out">Output (hex)</label>
+          <textarea id="b642hex-out" class="mono" readonly></textarea>
+          <div id="b642hex-status" class="status"></div>
         </div>
       </div>
     </section>
@@ -384,6 +420,74 @@
       setStatus(hStatus, `${arr.length} bytes decoded`, 'ok');
     }
     hIn.addEventListener('input', handleHex2Arr);
+
+    // ---------- hex→base64 ----------
+    const hex2b64In = document.getElementById('hex2b64-in');
+    const hex2b64Out = document.getElementById('hex2b64-out');
+    const hex2b64Status = document.getElementById('hex2b64-status');
+
+    function handleHex2B64() {
+      const raw = hex2b64In.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hex2b64Out.value = ''; setStatus(hex2b64Status, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const base64 = btoa(String.fromCharCode(...bytes));
+        hex2b64Out.value = base64;
+        setStatus(hex2b64Status, `${hex.length/2} bytes → base64`, 'ok');
+      } catch (e) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, `Error: ${e.message}`, 'err');
+      }
+    }
+    hex2b64In.addEventListener('input', handleHex2B64);
+
+    // ---------- base64→hex ----------
+    const b642hexIn = document.getElementById('b642hex-in');
+    const b642hexOut = document.getElementById('b642hex-out');
+    const b642hexStatus = document.getElementById('b642hex-status');
+
+    function handleB64ToHex() {
+      const raw = b642hexIn.value.trim();
+      if (!raw) { b642hexOut.value = ''; setStatus(b642hexStatus, ''); return; }
+      
+      try {
+        // Validate base64 - basic check for valid characters
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(raw)) {
+          b642hexOut.value = '';
+          setStatus(b642hexStatus, 'Error: Invalid base64 characters', 'err');
+          return;
+        }
+        
+        const decoded = atob(raw);
+        const bytes = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) {
+          bytes[i] = decoded.charCodeAt(i);
+        }
+        const hex = bytesToHex(bytes);
+        b642hexOut.value = hex;
+        setStatus(b642hexStatus, `${bytes.length} bytes decoded to hex`, 'ok');
+      } catch (e) {
+        b642hexOut.value = '';
+        setStatus(b642hexStatus, `Error: Invalid base64 encoding`, 'err');
+      }
+    }
+    b642hexIn.addEventListener('input', handleB64ToHex);
 
     // Defaults
     cWs.checked = false; // default disabled
