@@ -327,10 +327,56 @@
     // ---------- Tabs ----------
     const tabs = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.panel');
-    tabs.forEach(btn => btn.addEventListener('click', () => {
+    
+    // Map of tool IDs to URL parameter values
+    const toolMap = {
+      'tab-le2be': 'le2be',
+      'tab-count': 'count',
+      'tab-hd': 'hd',
+      'tab-dh': 'dh',
+      'tab-ws': 'whitespace',
+      'tab-arr2hex': 'arr2hex',
+      'tab-hex2arr': 'hex2arr',
+      'tab-hex2b64': 'hex2b64',
+      'tab-b642hex': 'b642hex',
+      'tab-hexsha': 'hexsha',
+      'tab-hexdsha': 'hexdsha',
+      'tab-strsha': 'strsha'
+    };
+    
+    // Reverse map for URL parameter to tool ID
+    const reverseToolMap = Object.fromEntries(Object.entries(toolMap).map(([k, v]) => [v, k]));
+    
+    function switchToTool(tabId) {
+      const btn = document.getElementById(tabId);
+      if (!btn) return;
+      
       tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
       panels.forEach(p => p.setAttribute('aria-hidden', p.id === btn.getAttribute('aria-controls') ? 'false' : 'true'));
+    }
+    
+    function updateURL(tool) {
+      const url = new URL(window.location);
+      url.searchParams.set('tool', tool);
+      window.history.replaceState({}, '', url);
+    }
+    
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      switchToTool(btn.id);
+      updateURL(toolMap[btn.id]);
     }));
+    
+    // Load tool from URL parameter on page load
+    function loadToolFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tool = urlParams.get('tool');
+      if (tool && reverseToolMap[tool]) {
+        switchToTool(reverseToolMap[tool]);
+      }
+    }
+    
+    // Initialize on page load
+    loadToolFromURL();
 
     // ---------- le2be ----------
     const leIn = document.getElementById('le2be-in');
