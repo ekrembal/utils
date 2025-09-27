@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Utility Tabs – Hex & String Tools</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111826;
+      --muted: #94a3b8;
+      --text: #e5e7eb;
+      --accent: #60a5fa;
+      --border: #1f2937;
+      --ok: #34d399;
+      --warn: #f59e0b;
+      --err: #f87171;
+      --radius: 14px;
+    }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: linear-gradient(180deg,#0b0f14,#0b0f14 50%,#0d131b); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+    h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.2px; margin: 0 0 14px; }
+    .sub { color: var(--muted); margin-bottom: 22px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn { appearance: none; border: 1px solid var(--border); background: #0f172a; color: var(--text); padding: 10px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform .04s ease, background .15s ease, border-color .15s ease; }
+    .tab-btn[aria-selected="true"] { background: #111b2e; border-color: #1e293b; outline: 2px solid rgba(96,165,250,.35); }
+    .tab-btn:active { transform: translateY(1px); }
+
+    .panel { margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; display: none; }
+    .panel[aria-hidden="false"] { display: block; }
+
+    .row { display: flex; flex-direction: column; gap: 12px; }
+
+    .box { display: flex; flex-direction: column; gap: 6px; }
+    .box label { font-size: 13px; color: var(--muted); }
+    textarea, input[type="text"] { width: 100%; max-width: 100%; min-height: 140px; background: #0b1220; color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 14px; resize: vertical; box-sizing: border-box; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .opts { display: flex; align-items: center; gap: 14px; margin: 8px 0 4px; color: var(--muted); font-size: 13px; }
+    .status { margin-top: 10px; font-size: 12px; }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    .status.err { color: var(--err); }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .pill { display:inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Test</h1>
+    <div class="sub">One file. Twelve tools. Paste above, results below. All offline.</div>
+
+    <div class="tabs" role="tablist" aria-label="Utilities">
+      <button class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-le2be" id="tab-le2be">le2be</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-count" id="tab-count">count</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hd" id="tab-hd">hd</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-dh" id="tab-dh">dh</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-ws" id="tab-ws">whitespace</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-arr2hex" id="tab-arr2hex">array→hex</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2arr" id="tab-hex2arr">hex→array</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hex2b64" id="tab-hex2b64">hex→base64</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-b642hex" id="tab-b642hex">base64→hex</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hexsha" id="tab-hexsha">hex→sha</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-hexdsha" id="tab-hexdsha">hex→double sha</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-strsha" id="tab-strsha">string→sha</button>
+    </div>
+
+    <!-- le2be -->
+    <section class="panel" id="panel-le2be" role="tabpanel" aria-hidden="false" aria-labelledby="tab-le2be">
+      <div class="pill">Little endian to Big endian</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="le2be-in">Input (hex string)</label>
+          <textarea id="le2be-in" class="mono" placeholder="e.g. 78 56 34 12"></textarea>
+          <div class="hint">Whitespace and 0x prefixes are ignored. Hex string must have even length.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="le2be-out">Output (hex, big-endian)</label>
+          <textarea id="le2be-out" class="mono" readonly></textarea>
+          <div id="le2be-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- count -->
+    <section class="panel" id="panel-count" role="tabpanel" aria-hidden="true" aria-labelledby="tab-count">
+      <div class="pill">Count Characters</div>
+      <div class="row">
+        <div class="box">
+          <label for="count-in">Input (any string)</label>
+          <textarea id="count-in" placeholder="Type here…"></textarea>
+          <div class="opts">
+            <label><input id="count-ws" type="checkbox" /> Count Whitespaces</label>
+          </div>
+        </div>
+        <div class="box">
+          <label class="mono" for="count-out">Output</label>
+          <textarea id="count-out" class="mono" readonly></textarea>
+          <div class="hint">Varint format is Bitcoin CompactSize, little-endian where applicable.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hd -->
+    <section class="panel" id="panel-hd" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hd">
+      <div class="pill">Hexadecimal to Decimal</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hd-in">Input (hex)</label>
+          <textarea id="hd-in" class="mono" placeholder="e.g. 0x1a2b or 1a2b"></textarea>
+        </div>
+        <div class="box">
+          <label class="mono" for="hd-out">Output</label>
+          <textarea id="hd-out" class="mono" readonly></textarea>
+          <div class="hint">Includes decimal and binary forms.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- dh -->
+    <section class="panel" id="panel-dh" role="tabpanel" aria-hidden="true" aria-labelledby="tab-dh">
+      <div class="pill">Decimal to Hexadecimal</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="dh-in">Input (decimal)</label>
+          <textarea id="dh-in" class="mono" placeholder="e.g. 12345678901234567890"></textarea>
+        </div>
+        <div class="box">
+          <label class="mono" for="dh-out">Output</label>
+          <textarea id="dh-out" class="mono" readonly></textarea>
+          <div class="hint">Includes hex (even length) and binary forms.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- whitespace -->
+    <section class="panel" id="panel-ws" role="tabpanel" aria-hidden="true" aria-labelledby="tab-ws">
+      <div class="pill">Remove whitespace</div>
+      <div class="row">
+        <div class="box">
+          <label for="ws-in">Input</label>
+          <textarea id="ws-in" placeholder="Spaces, tabs, newlines…"></textarea>
+        </div>
+        <div class="box">
+          <label class="mono" for="ws-out">Output (no whitespace)</label>
+          <textarea id="ws-out" class="mono" readonly></textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- array→hex -->
+    <section class="panel" id="panel-arr2hex" role="tabpanel" aria-hidden="true" aria-labelledby="tab-arr2hex">
+      <div class="pill">Array → Hex</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="arr2hex-in">Input (comma-separated bytes)</label>
+          <textarea id="arr2hex-in" class="mono" placeholder="e.g. 1, 255, 0, 16"></textarea>
+          <div class="hint">Each value must be 0-255. 0x-prefixed values are allowed.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="arr2hex-out">Output (hex)</label>
+          <textarea id="arr2hex-out" class="mono" readonly></textarea>
+          <div id="arr2hex-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→array -->
+    <section class="panel" id="panel-hex2arr" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hex2arr">
+      <div class="pill">Hex → Array</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hex2arr-in">Input (hex)</label>
+          <textarea id="hex2arr-in" class="mono" placeholder="e.g. ff01a0"></textarea>
+        </div>
+        <div class="box">
+          <label class="mono" for="hex2arr-out">Output (comma-separated bytes)</label>
+          <textarea id="hex2arr-out" class="mono" readonly></textarea>
+          <div id="hex2arr-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→base64 -->
+    <section class="panel" id="panel-hex2b64" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hex2b64">
+      <div class="pill">Hex → Base64</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hex2b64-in">Input (hex)</label>
+          <textarea id="hex2b64-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Whitespace and 0x prefixes are ignored. Hex string must have even length.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hex2b64-out">Output (base64)</label>
+          <textarea id="hex2b64-out" class="mono" readonly></textarea>
+          <div id="hex2b64-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- base64→hex -->
+    <section class="panel" id="panel-b642hex" role="tabpanel" aria-hidden="true" aria-labelledby="tab-b642hex">
+      <div class="pill">Base64 → Hex</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="b642hex-in">Input (base64)</label>
+          <textarea id="b642hex-in" class="mono" placeholder="e.g. SGVsbG8gV29ybGQ="></textarea>
+          <div class="hint">Standard base64 encoding with optional padding.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="b642hex-out">Output (hex)</label>
+          <textarea id="b642hex-out" class="mono" readonly></textarea>
+          <div id="b642hex-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→sha -->
+    <section class="panel" id="panel-hexsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hexsha">
+      <div class="pill">Hex → SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hexsha-in">Input (hex)</label>
+          <textarea id="hexsha-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Hashes the raw bytes represented by the hex string. Whitespace and 0x prefixes are ignored.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hexsha-out">Output (SHA-256 hash)</label>
+          <textarea id="hexsha-out" class="mono" readonly></textarea>
+          <div id="hexsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- hex→double sha -->
+    <section class="panel" id="panel-hexdsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-hexdsha">
+      <div class="pill">Hex → Double SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="hexdsha-in">Input (hex)</label>
+          <textarea id="hexdsha-in" class="mono" placeholder="e.g. 48656c6c6f20576f726c64"></textarea>
+          <div class="hint">Applies SHA-256 twice (Bitcoin-style). Hashes the raw bytes represented by the hex string.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="hexdsha-out">Output (double SHA-256 hash)</label>
+          <textarea id="hexdsha-out" class="mono" readonly></textarea>
+          <div id="hexdsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- string→sha -->
+    <section class="panel" id="panel-strsha" role="tabpanel" aria-hidden="true" aria-labelledby="tab-strsha">
+      <div class="pill">String → SHA-256</div>
+      <div class="row">
+        <div class="box">
+          <label class="mono" for="strsha-in">Input (string)</label>
+          <textarea id="strsha-in" placeholder="e.g. Hello World"></textarea>
+          <div class="hint">Hashes the UTF-8 bytes of the input string.</div>
+        </div>
+        <div class="box">
+          <label class="mono" for="strsha-out">Output (SHA-256 hash)</label>
+          <textarea id="strsha-out" class="mono" readonly></textarea>
+          <div id="strsha-status" class="status"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ---------- Helpers ----------
+    const cleanHex = (s) => {
+      if (!s) return "";
+      // Remove 0x prefix and convert to lowercase
+      let cleaned = s.toLowerCase().replace(/0x/gi, "");
+      // Remove trailing spaces only
+      cleaned = cleaned.replace(/\s+$/, "");
+      return cleaned;
+    };
+    const validateHex = (h) => /^[0-9a-f]*$/.test(h);
+    const chunk = (str, size) => str.match(new RegExp(`.{1,${size}}`, 'g')) || [];
+
+    function hexToBytes(hex) {
+      hex = cleanHex(hex);
+      if (hex.length % 2 !== 0) throw new Error('Hex string must have even length');
+      if (!validateHex(hex)) throw new Error('Invalid hex characters');
+      const out = new Uint8Array(hex.length / 2);
+      for (let i = 0; i < hex.length; i += 2) {
+        out[i >> 1] = parseInt(hex.slice(i, i + 2), 16);
+      }
+      return out;
+    }
+    function bytesToHex(bytes) { return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(''); }
+
+    // SHA-256 implementation
+    async function sha256(bytes) {
+      const hashBuffer = await crypto.subtle.digest('SHA-256', bytes);
+      return new Uint8Array(hashBuffer);
+    }
+    
+    async function doubleSha256(bytes) {
+      const firstHash = await sha256(bytes);
+      return await sha256(firstHash);
+    }
+
+    // Bitcoin CompactSize varint (little-endian for multi-byte)
+    function toVarIntHex(n) {
+      if (typeof n !== 'bigint') n = BigInt(n >>> 0);
+      if (n <= 252n) return n.toString(16).padStart(2, '0');
+      const le = (x, bytes) => bytesToHex(Uint8Array.from([...Array(bytes)].map((_, i) => Number((x >> (8n * BigInt(i))) & 0xffn))))
+      if (n <= 0xffffn) return 'fd' + le(n, 2);
+      if (n <= 0xffffffffn) return 'fe' + le(n, 4);
+      return 'ff' + le(n, 8);
+    }
+
+    function setStatus(el, text, kind = '') {
+      el.textContent = text || '';
+      el.className = 'status' + (kind ? ' ' + kind : '');
+    }
+
+    // ---------- Tabs ----------
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.panel');
+    
+    // Map of tool IDs to URL parameter values
+    const toolMap = {
+      'tab-le2be': 'le2be',
+      'tab-count': 'count',
+      'tab-hd': 'hd',
+      'tab-dh': 'dh',
+      'tab-ws': 'whitespace',
+      'tab-arr2hex': 'arr2hex',
+      'tab-hex2arr': 'hex2arr',
+      'tab-hex2b64': 'hex2b64',
+      'tab-b642hex': 'b642hex',
+      'tab-hexsha': 'hexsha',
+      'tab-hexdsha': 'hexdsha',
+      'tab-strsha': 'strsha'
+    };
+    
+    // Reverse map for URL parameter to tool ID
+    const reverseToolMap = Object.fromEntries(Object.entries(toolMap).map(([k, v]) => [v, k]));
+    
+    function switchToTool(tabId) {
+      const btn = document.getElementById(tabId);
+      if (!btn) return;
+      
+      tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+      panels.forEach(p => p.setAttribute('aria-hidden', p.id === btn.getAttribute('aria-controls') ? 'false' : 'true'));
+    }
+    
+    function updateURL(tool) {
+      const url = new URL(window.location);
+      url.searchParams.set('tool', tool);
+      window.history.replaceState({}, '', url);
+    }
+    
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      switchToTool(btn.id);
+      updateURL(toolMap[btn.id]);
+    }));
+    
+    // Load tool from URL parameter on page load
+    function loadToolFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tool = urlParams.get('tool');
+      if (tool && reverseToolMap[tool]) {
+        switchToTool(reverseToolMap[tool]);
+      }
+    }
+    
+    // Initialize on page load
+    loadToolFromURL();
+
+    // ---------- le2be ----------
+    const leIn = document.getElementById('le2be-in');
+    const leOut = document.getElementById('le2be-out');
+    const leStatus = document.getElementById('le2be-status');
+
+    function handleLe2Be() {
+      const raw = leIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { leOut.value = ''; setStatus(leStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        leOut.value = '';
+        setStatus(leStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length - don't print anything
+      if (hex.length % 2 !== 0) {
+        leOut.value = '';
+        setStatus(leStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      const bytes = chunk(hex, 2).reverse();
+      leOut.value = bytes.join('');
+      setStatus(leStatus, `${hex.length/2} bytes → reversed endian`, 'ok');
+    }
+    leIn.addEventListener('input', handleLe2Be);
+
+    // ---------- count ----------
+    const cIn = document.getElementById('count-in');
+    const cOut = document.getElementById('count-out');
+    const cWs = document.getElementById('count-ws');
+
+    function handleCount() {
+      const s = cIn.value || '';
+      const considerWS = cWs.checked;
+      const considered = considerWS ? s : s.replace(/\s+/g, '');
+      const len = [...considered].length; // Unicode-safe count by code points
+      const varint = toVarIntHex(BigInt(len));
+      cOut.value = `length: ${len}\nvarint (hex): ${varint}`;
+    }
+    cIn.addEventListener('input', handleCount);
+    cWs.addEventListener('change', handleCount);
+
+    // ---------- hd (hex→decimal + binary) ----------
+    const hdIn = document.getElementById('hd-in');
+    const hdOut = document.getElementById('hd-out');
+
+    function handleHD() {
+      const hexRaw = hdIn.value;
+      const hex = cleanHex(hexRaw);
+      if (!hex) { hdOut.value = ''; return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hdOut.value = 'Error: Invalid hex characters';
+        return;
+      }
+      
+      try {
+        const n = BigInt('0x' + hex);
+        const dec = n.toString(10);
+        const bin = n.toString(2);
+        hdOut.value = `decimal: ${dec}\nbinary: ${bin}`;
+      } catch (e) {
+        hdOut.value = `Error: ${e.message || e}`;
+      }
+    }
+    hdIn.addEventListener('input', handleHD);
+
+    // ---------- dh (decimal→hex + binary) ----------
+    const dhIn = document.getElementById('dh-in');
+    const dhOut = document.getElementById('dh-out');
+
+    function handleDH() {
+      const decRaw = (dhIn.value || '').trim();
+      if (!decRaw) { dhOut.value = ''; return; }
+      if (!/^[+-]?\d+$/.test(decRaw)) { dhOut.value = 'Error: invalid decimal input'; return; }
+      try {
+        let n = BigInt(decRaw);
+        if (n < 0n) { dhOut.value = 'Error: negative values not supported'; return; }
+        let hex = n.toString(16);
+        if (hex.length % 2) hex = '0' + hex; // even length
+        const bin = n.toString(2);
+        dhOut.value = `hex: ${hex}\nbinary: ${bin}`;
+      } catch (e) {
+        dhOut.value = `Error: ${e.message || e}`;
+      }
+    }
+    dhIn.addEventListener('input', handleDH);
+
+    // ---------- whitespace remover ----------
+    const wsIn = document.getElementById('ws-in');
+    const wsOut = document.getElementById('ws-out');
+    function handleWS() { wsOut.value = (wsIn.value || '').replace(/\s+/g, ''); }
+    wsIn.addEventListener('input', handleWS);
+
+    // ---------- array→hex ----------
+    const aIn = document.getElementById('arr2hex-in');
+    const aOut = document.getElementById('arr2hex-out');
+    const aStatus = document.getElementById('arr2hex-status');
+
+    function handleArr2Hex() {
+      const raw = aIn.value.trim();
+      if (!raw) { aOut.value = ''; setStatus(aStatus, ''); return; }
+      const items = raw.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      const bytes = [];
+      for (const s of items) {
+        const val = /^0x/i.test(s) ? parseInt(s, 16) : parseInt(s, 10);
+        if (!Number.isFinite(val) || val < 0 || val > 255) {
+          aOut.value = '';
+          setStatus(aStatus, `Invalid byte: "${s}"`, 'err');
+          return;
+        }
+        bytes.push(val);
+      }
+      aOut.value = bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+      setStatus(aStatus, `${bytes.length} bytes encoded`, 'ok');
+    }
+    aIn.addEventListener('input', handleArr2Hex);
+
+    // ---------- hex→array ----------
+    const hIn = document.getElementById('hex2arr-in');
+    const hOut = document.getElementById('hex2arr-out');
+    const hStatus = document.getElementById('hex2arr-status');
+
+    function handleHex2Arr() {
+      const raw = hIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hOut.value = ''; setStatus(hStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hOut.value = '';
+        setStatus(hStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length - don't print anything
+      if (hex.length % 2 !== 0) {
+        hOut.value = '';
+        setStatus(hStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      const arr = [];
+      for (let i = 0; i < hex.length; i += 2) arr.push(parseInt(hex.slice(i, i+2), 16));
+      hOut.value = arr.join(', ');
+      setStatus(hStatus, `${arr.length} bytes decoded`, 'ok');
+    }
+    hIn.addEventListener('input', handleHex2Arr);
+
+    // ---------- hex→base64 ----------
+    const hex2b64In = document.getElementById('hex2b64-in');
+    const hex2b64Out = document.getElementById('hex2b64-out');
+    const hex2b64Status = document.getElementById('hex2b64-status');
+
+    function handleHex2B64() {
+      const raw = hex2b64In.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hex2b64Out.value = ''; setStatus(hex2b64Status, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const base64 = btoa(String.fromCharCode(...bytes));
+        hex2b64Out.value = base64;
+        setStatus(hex2b64Status, `${hex.length/2} bytes → base64`, 'ok');
+      } catch (e) {
+        hex2b64Out.value = '';
+        setStatus(hex2b64Status, `Error: ${e.message}`, 'err');
+      }
+    }
+    hex2b64In.addEventListener('input', handleHex2B64);
+
+    // ---------- base64→hex ----------
+    const b642hexIn = document.getElementById('b642hex-in');
+    const b642hexOut = document.getElementById('b642hex-out');
+    const b642hexStatus = document.getElementById('b642hex-status');
+
+    function handleB64ToHex() {
+      const raw = b642hexIn.value.trim();
+      if (!raw) { b642hexOut.value = ''; setStatus(b642hexStatus, ''); return; }
+      
+      try {
+        // Validate base64 - basic check for valid characters
+        if (!/^[A-Za-z0-9+/]*={0,2}$/.test(raw)) {
+          b642hexOut.value = '';
+          setStatus(b642hexStatus, 'Error: Invalid base64 characters', 'err');
+          return;
+        }
+        
+        const decoded = atob(raw);
+        const bytes = new Uint8Array(decoded.length);
+        for (let i = 0; i < decoded.length; i++) {
+          bytes[i] = decoded.charCodeAt(i);
+        }
+        const hex = bytesToHex(bytes);
+        b642hexOut.value = hex;
+        setStatus(b642hexStatus, `${bytes.length} bytes decoded to hex`, 'ok');
+      } catch (e) {
+        b642hexOut.value = '';
+        setStatus(b642hexStatus, `Error: Invalid base64 encoding`, 'err');
+      }
+    }
+    b642hexIn.addEventListener('input', handleB64ToHex);
+
+    // ---------- hex→sha256 ----------
+    const hexshaIn = document.getElementById('hexsha-in');
+    const hexshaOut = document.getElementById('hexsha-out');
+    const hexshaStatus = document.getElementById('hexsha-status');
+
+    async function handleHexSha() {
+      const raw = hexshaIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hexshaOut.value = ''; setStatus(hexshaStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const hash = await sha256(bytes);
+        const hashHex = bytesToHex(hash);
+        hexshaOut.value = hashHex;
+        setStatus(hexshaStatus, `${hex.length/2} bytes → SHA-256`, 'ok');
+      } catch (e) {
+        hexshaOut.value = '';
+        setStatus(hexshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    hexshaIn.addEventListener('input', handleHexSha);
+
+    // ---------- hex→double sha256 ----------
+    const hexdshaIn = document.getElementById('hexdsha-in');
+    const hexdshaOut = document.getElementById('hexdsha-out');
+    const hexdshaStatus = document.getElementById('hexdsha-status');
+
+    async function handleHexDoubleSha() {
+      const raw = hexdshaIn.value;
+      const hex = cleanHex(raw);
+      if (!hex) { hexdshaOut.value = ''; setStatus(hexdshaStatus, ''); return; }
+      
+      // Validate hex characters
+      if (!validateHex(hex)) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, 'Error: Invalid hex characters', 'err');
+        return;
+      }
+      
+      // Check for odd length
+      if (hex.length % 2 !== 0) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, 'Error: Hex string must have even length', 'err');
+        return;
+      }
+      
+      try {
+        const bytes = hexToBytes(hex);
+        const hash = await doubleSha256(bytes);
+        const hashHex = bytesToHex(hash);
+        hexdshaOut.value = hashHex;
+        setStatus(hexdshaStatus, `${hex.length/2} bytes → double SHA-256`, 'ok');
+      } catch (e) {
+        hexdshaOut.value = '';
+        setStatus(hexdshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    hexdshaIn.addEventListener('input', handleHexDoubleSha);
+
+    // ---------- string→sha256 ----------
+    const strshaIn = document.getElementById('strsha-in');
+    const strshaOut = document.getElementById('strsha-out');
+    const strshaStatus = document.getElementById('strsha-status');
+
+    async function handleStringSha() {
+      const str = strshaIn.value;
+      if (!str) { strshaOut.value = ''; setStatus(strshaStatus, ''); return; }
+      
+      try {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(str);
+        const hash = await sha256(bytes);
+        const hashHex = bytesToHex(hash);
+        strshaOut.value = hashHex;
+        setStatus(strshaStatus, `${bytes.length} UTF-8 bytes → SHA-256`, 'ok');
+      } catch (e) {
+        strshaOut.value = '';
+        setStatus(strshaStatus, `Error: ${e.message}`, 'err');
+      }
+    }
+    strshaIn.addEventListener('input', handleStringSha);
+
+    // Defaults
+    cWs.checked = false; // default disabled
+  </script>
+</body>
+</html>
